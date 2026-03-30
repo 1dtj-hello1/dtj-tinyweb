@@ -21,6 +21,12 @@
 #include <sys/wait.h>
 #include <sys/uio.h>
 
+#include <iostream>
+#include <vector>
+#include <time.h>
+#include <algorithm>
+
+
 #include <time.h>
 #include "../log/log.h"
 
@@ -36,22 +42,23 @@ struct client_data
 class util_timer
 {
 public:
-    util_timer() : prev(NULL), next(NULL) {}
+    util_timer(){}
 
 public:
     time_t expire;
-    
-    void (* cb_func)(client_data *);
-    client_data *user_data;
-    util_timer *prev;
-    util_timer *next;
-};
+    void (*cb_func)(client_data*);
+    client_data* user_data;
 
+    // 小根堆比较：小的超时时间排前面
+    bool operator>(const util_timer& other) const {
+        return expire > other.expire;
+    }
+};
 class sort_timer_lst
 {
 public:
-    sort_timer_lst();
-    ~sort_timer_lst();
+    sort_timer_lst(){}
+    ~sort_timer_lst(){}
 
     void add_timer(util_timer *timer);
     void adjust_timer(util_timer *timer);
@@ -60,9 +67,7 @@ public:
 
 private:
     void add_timer(util_timer *timer, util_timer *lst_head);
-
-    util_timer *head;
-    util_timer *tail;
+    std::vector<util_timer*> heap;
 };
 
 class Utils
