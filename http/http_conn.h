@@ -90,6 +90,8 @@ public:
 private:
     void init();
     HTTP_CODE process_read();
+    HTTP_CODE upload_video();//new
+    HTTP_CODE watch_video();//new
     bool process_write(HTTP_CODE ret);
     HTTP_CODE parse_request_line(char *text);
     HTTP_CODE parse_headers(char *text);

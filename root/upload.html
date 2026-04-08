@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>上传视频</title>
+
+<style>
+body{
+    background:#f5f6fa;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.container{
+    width:500px;
+    margin:100px auto;
+    background:white;
+    padding:30px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,0.1);
+    text-align:center;
+}
+
+h1{
+    margin-bottom:20px;
+}
+
+input[type="file"]{
+    margin:20px 0;
+}
+
+button{
+    background:#409eff;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    font-size:16px;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#2f88e6;
+}
+
+.back{
+    margin-top:20px;
+    display:block;
+    color:#666;
+    text-decoration:none;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>视频上传</h1>
+
+<form action="/upload" method="post" enctype="multipart/form-data">
+
+<input type="file" name="video"><br>
+
+<button type="submit">上传视频</button>
+
+</form>
+
+<a class="back" href="/">返回首页</a>
+
+</div>
+
+</body>
+</html>

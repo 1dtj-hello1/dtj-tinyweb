@@ -392,7 +392,12 @@ http_conn::HTTP_CODE http_conn::do_request()
     //printf("m_url:%s\n", m_url);
     const char *p = strrchr(m_url, '/');
 
-    //处理cgi
+// ================= 视频上传接口 =================
+    if (cgi == 1 && strcasecmp(m_url, "/upload") == 0)
+    {
+        return upload_video();
+    }
+//处理cgi
     if (cgi == 1 && (*(p + 1) == '2' || *(p + 1) == '3'))
     {
 
@@ -699,4 +704,59 @@ void http_conn::process()
         close_conn();
     }
     modfd(m_epollfd, m_sockfd, EPOLLOUT, m_TRIGMode);
+}
+http_conn::HTTP_CODE http_conn::upload_video()
+{
+    char* file_start = strstr(m_string, "\r\n\r\n");
+    if (!file_start) return BAD_REQUEST;
+
+    file_start += 4;
+
+    // 保存视频
+    int fd = open("root/videos/test.mp4", O_CREAT | O_WRONLY, 0666);
+    ::write(fd, file_start, m_content_length);
+    close(fd);
+
+    // 写入数据库
+    MYSQL *mysql = NULL;
+connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
+    char sql[256];
+    sprintf(sql,
+    "insert into video(title,filename,status) values('%s','%s',0)",
+    "test", "test.mp4");
+
+    mysql_query(mysql, sql);
+
+    strcpy(m_url, "/upload_success.html");
+
+    return FILE_REQUEST;
+}
+
+
+//new
+http_conn::HTTP_CODE http_conn::watch_video()
+{
+    char* file_start = strstr(m_string, "\r\n\r\n");
+    if (!file_start) return BAD_REQUEST;
+
+    file_start += 4;
+
+    // 保存视频
+    int fd = open("root/videos/test.mp4", O_CREAT | O_WRONLY, 0666);
+    ::write(fd, file_start, m_content_length);
+    close(fd);
+
+    // 写入数据库
+    MYSQL *mysql = NULL;
+connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
+    char sql[256];
+    sprintf(sql,
+    "insert into video(title,filename,status) values('%s','%s',0)",
+    "test", "test.mp4");
+
+    mysql_query(mysql, sql);
+
+    strcpy(m_url, "/upload_success.html");
+
+    return FILE_REQUEST;
 }
