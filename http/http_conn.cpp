@@ -392,6 +392,26 @@ http_conn::HTTP_CODE http_conn::do_request()
     //printf("m_url:%s\n", m_url);
     const char *p = strrchr(m_url, '/');
 
+
+if (cgi == 1 && strcmp(m_url, "/comment") == 0)
+{
+    const char* video_id = get_parameter("video_id");
+    const char* content = get_parameter("content");
+    
+    // 插入数据库
+    char sql[256];
+    sprintf(sql, "INSERT INTO comments(video_id, user, content) VALUES('%s', 'user1', '%s')", video_id, content);
+    mysql_query(mysql, sql);
+
+    return FILE_REQUEST;
+}
+
+
+if (cgi == 1 && strcmp(m_url, "/video_list") == 0)
+{
+       return watch_video();
+}
+
 // ================= 视频上传接口 =================
     if (cgi == 1 && strcasecmp(m_url, "/upload") == 0)
     {
@@ -705,29 +725,61 @@ void http_conn::process()
     }
     modfd(m_epollfd, m_sockfd, EPOLLOUT, m_TRIGMode);
 }
+
+
+
 http_conn::HTTP_CODE http_conn::upload_video()
 {
-    char* file_start = strstr(m_string, "\r\n\r\n");
-    if (!file_start) return BAD_REQUEST;
+    // 解析 title
+    
+char* title_start = strstr(m_string, "name=\"title\"");
+    title_start = strstr(title_start, "\r\n\r\n");
+    title_start += 4;
 
+    char* title_end = strstr(title_start, "\r\n");
+
+    char title[256];
+    memset(title,0,sizeof(title));
+    strncpy(title, title_start, title_end - title_start);
+
+    // 解析 filename
+    char* filename_start = strstr(m_string, "filename=\"");
+    filename_start += 10;
+
+    char* filename_end = strchr(filename_start,'"');
+
+    char filename[256];
+    memset(filename,0,sizeof(filename));
+    strncpy(filename, filename_start, filename_end - filename_start);
+
+    // 文件数据
+    char* file_start = strstr(m_string, "\r\n\r\n");
     file_start += 4;
 
-    // 保存视频
-    int fd = open("root/videos/test.mp4", O_CREAT | O_WRONLY, 0666);
-    ::write(fd, file_start, m_content_length);
+    char* file_end = strstr(file_start, "\r\n------");
+    int file_len = file_end - file_start;
+
+    char path[512];
+    sprintf(path,"root/videos/%s",filename);
+
+    int fd = open(path, O_CREAT | O_WRONLY, 0666);
+if(fd==-1)
+	printf("erro");
+printf("yes");
+    ::write(fd, file_start, file_len);
     close(fd);
 
-    // 写入数据库
     MYSQL *mysql = NULL;
-connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
-    char sql[256];
+    connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
+
+    char sql[512];
     sprintf(sql,
-    "insert into video(title,filename,status) values('%s','%s',0)",
-    "test", "test.mp4");
+    "insert into video(title,filename,status) values('%s','%s',1)",
+    title, filename);
 
     mysql_query(mysql, sql);
 
-    strcpy(m_url, "/upload_success.html");
+    strcpy(m_url,"/upload_success.html");
 
     return FILE_REQUEST;
 }
@@ -736,27 +788,55 @@ connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
 //new
 http_conn::HTTP_CODE http_conn::watch_video()
 {
-    char* file_start = strstr(m_string, "\r\n\r\n");
-    if (!file_start) return BAD_REQUEST;
-
-    file_start += 4;
-
-    // 保存视频
-    int fd = open("root/videos/test.mp4", O_CREAT | O_WRONLY, 0666);
-    ::write(fd, file_start, m_content_length);
-    close(fd);
-
-    // 写入数据库
+    // 查询数据库获取所有已批准的视频列表
     MYSQL *mysql = NULL;
-connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
-    char sql[256];
-    sprintf(sql,
-    "insert into video(title,filename,status) values('%s','%s',0)",
-    "test", "test.mp4");
+    connectionRAII mysqlcon(&mysql, connection_pool::GetInstance());
+    
+    const char* query = "SELECT filename, cover, title FROM video WHERE status = 1";
+    mysql_query(mysql, query);
+    MYSQL_RES *result = mysql_store_result(mysql);
+    
+    // 获取查询结果并生成 HTML
+    MYSQL_ROW row;
+    std::string video_list_html;
+    
+    while ((row = mysql_fetch_row(result)))
+    {
+        const char *filename = row[0];
+        const char *cover = row[1];
+        const char *title = row[2];
+        
+        video_list_html += "<div class='video-card'>";
+        video_list_html += "<img src='/covers/" + std::string(cover) + "' alt='封面' class='video-cover'>";
+        video_list_html += "<div class='title'>" + std::string(title) + "</div>";
+        video_list_html += "<a href='/watch.html?video=" + std::string(filename) + "'>观看</a>";
+        video_list_html += "</div>";
+    }
+FILE *out = fopen("root/video_list.html","w");
 
-    mysql_query(mysql, sql);
+fwrite(video_list_html.c_str(),1,video_list_html.size(),out);
 
-    strcpy(m_url, "/upload_success.html");
+fclose(out);
 
-    return FILE_REQUEST;
+strcpy(m_url,"/video_list_gen.html"); 
+ return FILE_REQUEST;
+
+    // 返回视频列表 HTML
+}
+const char* http_conn::get_parameter(const char* key)
+{
+    // 从请求的参数中提取对应值
+    // 示例：可以使用 strstr 或 regex 来查找参数
+    char* param_start = strstr(m_string, key);
+    if (param_start == NULL) return NULL;
+
+    param_start += strlen(key) + 1; // 跳过 'key='
+    char* param_end = strchr(param_start, '&');
+    if (param_end == NULL) param_end = strchr(param_start, '\0');  // 处理最后一个参数
+
+    size_t param_len = param_end - param_start;
+    char* value = new char[param_len + 1];
+    strncpy(value, param_start, param_len);
+    value[param_len] = '\0';
+    return value;
 }

@@ -98,6 +98,7 @@ private:
     HTTP_CODE parse_content(char *text);
     HTTP_CODE do_request();
     char *get_line() { return m_read_buf + m_start_line; };
+    const char* get_parameter(const char* key);// 从请求的参数中提取对应值
     LINE_STATUS parse_line();
     void unmap();
     bool add_response(const char *format, ...);
