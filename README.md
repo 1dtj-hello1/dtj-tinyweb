@@ -1,10 +1,9 @@
-# dtjdw的视频小网站(施工中⚒️
+# dtjdw的tinyweb
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![C++](https://img.shields.io/badge/C%2B%2B-11/17-blue.svg)](https://isocpp.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://www.linux.org/)
 
 基于 Reactor 模式的高性能 C++ Web 服务器，支持高并发、异步日志、零拷贝文件传输。
->🛠️正在施工
 ## ✨ 特性
 
 | 特性 | 说明 |
